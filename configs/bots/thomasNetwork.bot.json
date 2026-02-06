@@ -1,0 +1,115 @@
+{
+  "botId": "thomasnetwork",
+  "botName": "Thomas Network Access",
+  "botType": "thomas_network",
+  "phoneNumberId": "YOUR_PHONE_NUMBER_ID",
+  "verifyToken": "YOUR_VERIFY_TOKEN",
+  "defaultFlowId": "main_menu",
+  "flows": {
+    "main_menu": {
+      "id": "main_menu",
+      "triggers": ["hi", "hello", "menu", "start"],
+      "startState": "welcome",
+      "states": {
+        "welcome": {
+          "id": "welcome",
+          "type": "message",
+          "template": "Welcome to Thomas Network!\n\n1) Buy Network Access\n2) Help",
+          "next": "await_choice"
+        },
+        "await_choice": {
+          "id": "await_choice",
+          "type": "input",
+          "saveAs": "menuChoice",
+          "prompt": "Please choose an option",
+          "next": "route_menu"
+        },
+        "route_menu": {
+          "id": "route_menu",
+          "type": "action",
+          "action": "menu.route"
+        },
+        "bandwidth_list_action": {
+          "id": "bandwidth_list_action",
+          "type": "action",
+          "action": "bandwidth.list"
+        },
+        "bandwidth_prompt": {
+          "id": "bandwidth_prompt",
+          "type": "message",
+          "template": "{{bandwidthMessage}}",
+          "next": "bandwidth_input"
+        },
+        "bandwidth_input": {
+          "id": "bandwidth_input",
+          "type": "input",
+          "saveAs": "bandwidthChoiceInput",
+          "prompt": "Choose bandwidth",
+          "next": "bandwidth_validate_action"
+        },
+        "bandwidth_validate_action": {
+          "id": "bandwidth_validate_action",
+          "type": "action",
+          "action": "bandwidth.validate"
+        },
+        "bandwidth_invalid": {
+          "id": "bandwidth_invalid",
+          "type": "message",
+          "template": "Invalid selection. Please try again.",
+          "next": "bandwidth_list_action"
+        },
+        "devices_prompt": {
+          "id": "devices_prompt",
+          "type": "message",
+          "template": "How many devices do you need? (1-10)\n\nPrice: Base + 100 XAF per device",
+          "next": "devices_input"
+        },
+        "devices_input": {
+          "id": "devices_input",
+          "type": "input",
+          "saveAs": "deviceCountInput",
+          "prompt": "Enter number of devices",
+          "next": "devices_calculate_action"
+        },
+        "devices_calculate_action": {
+          "id": "devices_calculate_action",
+          "type": "action",
+          "action": "devices.calculate"
+        },
+        "devices_invalid": {
+          "id": "devices_invalid",
+          "type": "message",
+          "template": "{{devicesError}}",
+          "next": "devices_prompt"
+        },
+        "payment_confirm": {
+          "id": "payment_confirm",
+          "type": "message",
+          "template": "{{orderSummary}}\n\nA payment request will be sent to your phone.",
+          "next": "payment_initiate_action"
+        },
+        "payment_initiate_action": {
+          "id": "payment_initiate_action",
+          "type": "action",
+          "action": "payments.initiate"
+        },
+        "payment_pending": {
+          "id": "payment_pending",
+          "type": "message",
+          "template": "Payment request sent! Please complete the payment.\n\nYour access code will be sent after payment confirmation."
+        },
+        "payment_failed": {
+          "id": "payment_failed",
+          "type": "message",
+          "template": "Payment failed: {{paymentError}}\n\nPlease try again.",
+          "next": "main_menu"
+        },
+        "help_message": {
+          "id": "help_message",
+          "type": "message",
+          "template": "Thomas Network Help:\n\n- Choose your bandwidth tier\n- Select number of devices\n- Complete payment\n- Receive your access code\n\nFor support, contact: support@example.com"
+        }
+      }
+    }
+  }
+}

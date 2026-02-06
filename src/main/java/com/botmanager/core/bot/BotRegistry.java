@@ -1,0 +1,182 @@
+package com.botmanager.core.bot;
+
+import com.botmanager.bots.laundry.LaundryBotConfig;
+import com.botmanager.config.BotProperties;
+import com.botmanager.core.flow.FlowEngine;
+import com.botmanager.core.i18n.TranslationService;
+import com.botmanager.core.machine.MachineService;
+import com.botmanager.core.payment.PaymentGateway;
+import com.botmanager.core.redis.RedisManager;
+import com.botmanager.core.whatsapp.WhatsAppClientFactory;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.stereotype.Component;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class BotRegistry {
+
+    private final BotProperties botProperties;
+
+    private final FlowEngine flowEngine;
+
+    private final RedisManager redisManager;
+
+    private final WhatsAppClientFactory whatsAppClientFactory;
+
+    private final PaymentGateway paymentGateway;
+
+    private final MachineService machineService;
+
+    private final TranslationService translationService;
+
+    private final ObjectMapper objectMapper;
+
+    private final Map<String, BaseBot> botsByName = new ConcurrentHashMap<>();
+
+    private final Map<String, BaseBot> botsByPhoneId = new ConcurrentHashMap<>();
+
+    private final Map<String, String> verifyTokenToBot = new ConcurrentHashMap<>();
+
+    @PostConstruct
+    void init() {
+        loadBotsFromDirectory();
+    }
+
+    public void registerBot(String name, BaseBot bot) {
+        BotConfig config = bot.getConfig();
+
+        botsByName.put(name, bot);
+        botsByPhoneId.put(config.getPhoneNumberId(), bot);
+        verifyTokenToBot.put(config.getVerifyToken(), name);
+
+        machineService.registerBot(config);
+
+        log.info("Registered bot: {} (phoneNumberId: {})", name, config.getPhoneNumberId());
+    }
+
+    public Optional<BaseBot> getBotByName(String name) {
+        return Optional.ofNullable(botsByName.get(name));
+    }
+
+    public Optional<BaseBot> getBotByPhoneId(String phoneNumberId) {
+        return Optional.ofNullable(botsByPhoneId.get(phoneNumberId));
+    }
+
+    public Optional<String> getBotNameByVerifyToken(String verifyToken) {
+        return Optional.ofNullable(verifyTokenToBot.get(verifyToken));
+    }
+
+    private void loadBotsFromDirectory() {
+        try {
+            PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
+            String pattern = "classpath:" + botProperties.getConfigDirectory() + "/*.bot.json";
+            Resource[] resources = resolver.getResources(pattern);
+
+            if (resources.length == 0) {
+                pattern = "file:" + botProperties.getConfigDirectory() + "/*.bot.json";
+                resources = resolver.getResources(pattern);
+            }
+
+            for (Resource resource : resources) {
+                loadBotConfig(resource);
+            }
+
+            log.info("Loaded {} bots from directory", botsByName.size());
+        } catch (IOException exception) {
+            log.error("Failed to load bots from directory: {}", exception.getMessage());
+        }
+    }
+
+    private void loadBotConfig(Resource resource) {
+        try (InputStream inputStream = resource.getInputStream()) {
+            // First pass: read as generic BotConfig to determine type
+            byte[] configBytes = inputStream.readAllBytes();
+            BotConfig baseConfig = objectMapper.readValue(configBytes, BotConfig.class);
+
+            if (!validateBotConfig(baseConfig)) {
+                log.warn("Invalid bot config: {}", resource.getFilename());
+
+                return;
+            }
+
+            // Second pass: read as specific config type based on bot type
+            BotConfig config = parseTypedConfig(configBytes, baseConfig.getBotType());
+
+            BaseBot bot = createBotInstance(config);
+            if (bot != null) {
+                registerBot(config.getBotId(), bot);
+            }
+        } catch (Exception exception) {
+            log.error("Failed to load bot config {}: {}", resource.getFilename(), exception.getMessage());
+        }
+    }
+
+    private BotConfig parseTypedConfig(byte[] configBytes, String botType) throws IOException {
+        BotType type = BotType.fromValue(botType);
+
+        if (type == null) {
+            return objectMapper.readValue(configBytes, BotConfig.class);
+        }
+
+        return switch (type) {
+            case LAUNDRY -> objectMapper.readValue(configBytes, LaundryBotConfig.class);
+            case THOMAS_NETWORK -> objectMapper.readValue(configBytes, BotConfig.class);
+        };
+    }
+
+    private boolean validateBotConfig(BotConfig config) {
+        if (config.getBotId() == null || config.getBotId().isBlank()) {
+            log.warn("Bot config missing botId");
+
+            return false;
+        }
+
+        if (config.getPhoneNumberId() == null || config.getPhoneNumberId().isBlank()) {
+            log.warn("Bot {} missing phoneNumberId", config.getBotId());
+
+            return false;
+        }
+
+        if (config.getVerifyToken() == null || config.getVerifyToken().isBlank()) {
+            log.warn("Bot {} missing verifyToken", config.getBotId());
+
+            return false;
+        }
+
+        return true;
+    }
+
+    private BaseBot createBotInstance(BotConfig config) {
+        BotType botType = BotType.fromValue(config.getBotType());
+
+        if (botType == null) {
+            log.warn("Unknown bot type {} for bot {}", config.getBotType(), config.getBotId());
+
+            return null;
+        }
+
+        return switch (botType) {
+            case LAUNDRY -> new com.botmanager.bots.laundry.LaundryBot(
+                    (LaundryBotConfig) config, flowEngine, redisManager, whatsAppClientFactory, objectMapper,
+                    paymentGateway, machineService, translationService
+            );
+            case THOMAS_NETWORK -> new com.botmanager.bots.thomasnetwork.ThomasNetworkBot(
+                    config, flowEngine, redisManager, whatsAppClientFactory, objectMapper,
+                    paymentGateway
+            );
+        };
+    }
+
+}

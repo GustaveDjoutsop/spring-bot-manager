@@ -56,7 +56,17 @@ public class FlowEngine {
 
             FlowState state = currentFlow.getStates().get(currentStateId);
             if (state == null) {
-                log.warn("State {} not found in flow {}", currentStateId, currentFlow.getId());
+                String fallback = currentFlow.getStartState();
+                if (StringUtils.hasText(fallback) && currentFlow.getStates().containsKey(fallback)) {
+                    log.warn("State {} not found in flow {}. Resetting to startState {}", currentStateId, currentFlow.getId(), fallback);
+                    conversationState.setCurrentStateId(null);
+                    currentStateId = fallback;
+                    userMessage = null;
+                    continue;
+                }
+
+                log.warn("State {} not found in flow {} and startState is invalid; cannot recover", currentStateId, currentFlow.getId());
+                conversationState.setCurrentStateId(null);
                 break;
             }
 

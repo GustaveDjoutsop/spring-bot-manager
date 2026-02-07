@@ -28,28 +28,66 @@
           "type": "action",
           "action": "menu.route"
         },
-        "pressing_message": {
-          "id": "pressing_message",
+        "pressing_menu": {
+          "id": "pressing_menu",
+          "type": "buttons",
+          "template": "\uD83E\uDDFA Pressing\n\nChoisis une option :",
+          "saveAs": "pressingChoice",
+          "buttons": [
+            {"id": "pressing_machines", "title": "Machines dispo"},
+            {"id": "pressing_tracking", "title": "Suivi code"},
+            {"id": "menu", "title": "Menu"}
+          ],
+          "next": "pressing_route_action"
+        },
+        "pressing_route_action": {
+          "id": "pressing_route_action",
+          "type": "action",
+          "action": "pressing.route"
+        },
+        "pressing_machines_message": {
+          "id": "pressing_machines_message",
           "type": "message",
-          "template": "\uD83E\uDDFA Pressing\n\nBient\u00F4t disponible.",
-          "next": "main_menu"
+          "template": "\uD83E\uDDFA Pressing\n\nMachines disponibles: bient\u00F4t.",
+          "next": "pressing_menu"
+        },
+        "pressing_tracking_prompt": {
+          "id": "pressing_tracking_prompt",
+          "type": "message",
+          "template": "\uD83C\uDFF7\uFE0F Suivi Pressing\n\nEnvoie ton code pressing (ex: PRS1234) :",
+          "next": "pressing_tracking_input"
+        },
+        "pressing_tracking_input": {
+          "id": "pressing_tracking_input",
+          "type": "input",
+          "saveAs": "pressingTrackingCode",
+          "prompt": "Code de suivi",
+          "next": "pressing_tracking_action"
+        },
+        "pressing_tracking_action": {
+          "id": "pressing_tracking_action",
+          "type": "action",
+          "action": "pressing.tracking"
+        },
+        "pressing_tracking_result": {
+          "id": "pressing_tracking_result",
+          "type": "buttons",
+          "template": "{{{pressingTrackingResult}}}",
+          "saveAs": "pressingChoice",
+          "buttonsFromContext": "pressingButtons",
+          "next": "pressing_route_action"
         },
         "bandwidth_list_action": {
           "id": "bandwidth_list_action",
           "type": "action",
           "action": "bandwidth.list"
         },
-        "bandwidth_prompt": {
-          "id": "bandwidth_prompt",
-          "type": "message",
-          "template": "{{bandwidthMessage}}",
-          "next": "bandwidth_input"
-        },
-        "bandwidth_input": {
-          "id": "bandwidth_input",
-          "type": "input",
+        "bandwidth_buttons": {
+          "id": "bandwidth_buttons",
+          "type": "buttons",
+          "template": "{{{bandwidthMessage}}}",
+          "buttonsFromContext": "bandwidthButtons",
           "saveAs": "bandwidthChoiceInput",
-          "prompt": "Choose bandwidth",
           "next": "bandwidth_validate_action"
         },
         "bandwidth_validate_action": {
@@ -65,15 +103,14 @@
         },
         "devices_prompt": {
           "id": "devices_prompt",
-          "type": "message",
-          "template": "How many devices do you need? (1-10)\n\nPrice: Base + 100 XAF per device",
-          "next": "devices_input"
-        },
-        "devices_input": {
-          "id": "devices_input",
-          "type": "input",
+          "type": "buttons",
+          "template": "\uD83D\uDCF1 *Nombre d'appareils*\nChoisis le nombre d'appareils \u00E0 connecter :",
           "saveAs": "deviceCountInput",
-          "prompt": "Enter number of devices",
+          "buttons": [
+            {"id": "1", "title": "1 appareil (skip)"},
+            {"id": "2", "title": "2 appareils"},
+            {"id": "4", "title": "4 appareils"}
+          ],
           "next": "devices_calculate_action"
         },
         "devices_calculate_action": {
@@ -90,7 +127,7 @@
         "payment_confirm": {
           "id": "payment_confirm",
           "type": "message",
-          "template": "{{orderSummary}}\n\nA payment request will be sent to your phone.",
+          "template": "{{{orderSummary}}}",
           "next": "payment_initiate_action"
         },
         "payment_initiate_action": {

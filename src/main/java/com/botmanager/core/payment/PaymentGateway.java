@@ -34,11 +34,12 @@ public class PaymentGateway {
 
     @PostConstruct
     void init() {
-        if (camPayProperties.isConfigured()) {
-            providers.put(camPayProvider.getName(), camPayProvider);
+        providers.put(camPayProvider.getName(), camPayProvider);
+        if (camPayProperties.isConfigured() || camPayProvider.hasAnyPerBotTokenConfigured()) {
             defaultProvider = camPayProvider.getName();
-            log.info("CamPay provider registered");
         }
+
+        log.info("CamPay provider registered");
 
         providers.put(mtnMomoProvider.getName(), mtnMomoProvider);
 
@@ -51,6 +52,9 @@ public class PaymentGateway {
 
     public PaymentResult initiatePayment(PaymentRequest request) {
         PaymentProvider provider = providers.get(defaultProvider);
+        if (provider == mtnMomoProvider && request != null && camPayProvider.isConfiguredForBot(request.getBotId())) {
+            provider = camPayProvider;
+        }
         if (provider == null) {
             return PaymentResult.builder()
                     .success(false)
@@ -88,7 +92,7 @@ public class PaymentGateway {
             return PaymentStatus.PENDING;
         }
 
-        return paymentProvider.checkStatus(transactionId);
+        return paymentProvider.checkStatus(botId, transactionId);
     }
 
     public PaymentResult handleWebhook(String botId, String providerName, Map<String, Object> payload) {

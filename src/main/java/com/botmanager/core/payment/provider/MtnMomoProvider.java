@@ -31,7 +31,7 @@ public class MtnMomoProvider extends PaymentProvider {
     }
 
     @Override
-    public PaymentStatus checkStatus(String transactionId) {
+    public PaymentStatus checkStatus(String botId, String transactionId) {
         return PaymentStatus.PENDING;
     }
 

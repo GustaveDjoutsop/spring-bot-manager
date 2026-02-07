@@ -21,11 +21,15 @@ public class WhatsAppSignatureVerifier {
     private final WhatsAppProperties whatsAppProperties;
 
     public boolean verify(String signature, String rawBody) {
+        return verify(signature, rawBody, whatsAppProperties.getAppSecret());
+    }
+
+    public boolean verify(String signature, String rawBody, String appSecret) {
         if (!whatsAppProperties.isVerifySignature()) {
             return true;
         }
 
-        if (!StringUtils.hasText(whatsAppProperties.getAppSecret())) {
+        if (!StringUtils.hasText(appSecret)) {
             log.warn("WhatsApp signature verification enabled but no app secret configured");
 
             return false;
@@ -45,7 +49,7 @@ public class WhatsAppSignatureVerifier {
         try {
             Mac mac = Mac.getInstance("HmacSHA256");
             SecretKeySpec secretKeySpec = new SecretKeySpec(
-                    whatsAppProperties.getAppSecret().getBytes(StandardCharsets.UTF_8),
+                    appSecret.getBytes(StandardCharsets.UTF_8),
                     "HmacSHA256"
             );
             mac.init(secretKeySpec);

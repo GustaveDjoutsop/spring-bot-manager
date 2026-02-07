@@ -52,9 +52,12 @@ public class ThomasNetworkFlowPlugin extends FlowPlugin {
             return;
         }
 
-        switch (menuChoice.trim()) {
-            case "1" -> goTo(context, "bandwidth_list_action");
-            case "2" -> goTo(context, "help_message");
+        String normalized = menuChoice.trim().toLowerCase();
+
+        switch (normalized) {
+            case "1", "access_network" -> goTo(context, "bandwidth_list_action");
+            case "2", "help", "aide" -> goTo(context, "help_message");
+            case "3", "pressing" -> goTo(context, "pressing_message");
             default -> goTo(context, "main_menu");
         }
     }

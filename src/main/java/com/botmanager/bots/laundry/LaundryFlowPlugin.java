@@ -133,13 +133,13 @@ public class LaundryFlowPlugin extends FlowPlugin {
         if ("lang_en".equals(input) || "english".equals(input) || "en".equals(input)) {
             context.set("language", Language.EN);
             context.set("step", LaundryStep.MAIN_MENU);
-            handleShowMainMenu(context);
+            goTo(context, "main_menu");
         } else if ("lang_fr".equals(input) || "french".equals(input) || "fr".equals(input) || "francais".equals(input)) {
             context.set("language", Language.FR);
             context.set("step", LaundryStep.MAIN_MENU);
-            handleShowMainMenu(context);
+            goTo(context, "main_menu");
         } else {
-            handleShowLanguageSelection(context);
+            goTo(context, "language_selection");
         }
     }
 
@@ -162,11 +162,12 @@ public class LaundryFlowPlugin extends FlowPlugin {
         String input = getInputLower(context);
 
         switch (input) {
-            case "action_services" -> handleShowServices(context);
+            case "action_services" -> goTo(context, "show_services");
             case "action_wash" -> handleStartWashFlow(context);
-            case "action_my_status" -> handleShowUserCycleStatus(context);
-            case "action_availability" -> handleShowMachineAvailability(context);
-            default -> handleShowMainMenu(context);
+            case "action_my_status" -> goTo(context, "show_user_status");
+            case "action_availability" -> goTo(context, "show_availability");
+            case "action_cancel" -> goTo(context, "main_menu");
+            default -> goTo(context, "main_menu");
         }
     }
 
@@ -192,6 +193,8 @@ public class LaundryFlowPlugin extends FlowPlugin {
         context.set("responseMessage", message);
         context.set("responseButtons", buttons);
         context.set("step", LaundryStep.AWAITING_MENU_CHOICE);
+
+        goTo(context, "await_menu");
     }
 
     // ========== Start Wash Flow ==========
@@ -203,6 +206,8 @@ public class LaundryFlowPlugin extends FlowPlugin {
 
         if (!checkResult.isAllowed()) {
             handleBusinessHoursClosed(context, checkResult, hoursInfo);
+
+            goTo(context, "await_menu");
 
             return;
         }
@@ -220,10 +225,12 @@ public class LaundryFlowPlugin extends FlowPlugin {
             context.set("responseButtons", buttons);
             context.set("step", LaundryStep.AWAITING_MENU_CHOICE);
 
+            goTo(context, "await_menu");
+
             return;
         }
 
-        handleShowMachineMethodSelection(context);
+        goTo(context, "machine_method_selection");
     }
 
     private void handleBusinessHoursClosed(FlowContext context, BusinessHoursService.CycleCheckResult checkResult, BusinessHoursService.BusinessHoursInfo hoursInfo) {
@@ -247,6 +254,9 @@ public class LaundryFlowPlugin extends FlowPlugin {
         context.set("responseMessage", message);
         context.set("responseButtons", buttons);
         context.set("step", LaundryStep.AWAITING_MENU_CHOICE);
+
+        // Return to the main menu input state so the next user click is captured.
+        goTo(context, "await_menu");
     }
 
     // ========== Machine Selection ==========
@@ -271,11 +281,11 @@ public class LaundryFlowPlugin extends FlowPlugin {
         String input = getInputLower(context);
 
         if ("select_enter_id".equals(input)) {
-            handleShowEnterIdPrompt(context);
+            goTo(context, "enter_machine_id");
         } else if ("select_choose".equals(input)) {
-            handleShowMachineList(context);
+            goTo(context, "show_machine_list");
         } else {
-            handleShowMachineMethodSelection(context);
+            goTo(context, "machine_method_selection");
         }
     }
 
@@ -294,7 +304,7 @@ public class LaundryFlowPlugin extends FlowPlugin {
         String input = context.getString("userInput");
 
         if (input == null || input.isBlank()) {
-            handleShowEnterIdPrompt(context);
+            goTo(context, "enter_machine_id");
 
             return;
         }
@@ -302,13 +312,13 @@ public class LaundryFlowPlugin extends FlowPlugin {
         String inputLower = input.toLowerCase();
 
         if ("select_choose".equals(inputLower)) {
-            handleShowMachineList(context);
+            goTo(context, "show_machine_list");
 
             return;
         }
 
         if ("select_enter_id".equals(inputLower)) {
-            handleShowEnterIdPrompt(context);
+            goTo(context, "enter_machine_id");
 
             return;
         }
@@ -326,6 +336,8 @@ public class LaundryFlowPlugin extends FlowPlugin {
             context.set("responseMessage", message);
             context.set("responseButtons", buttons);
 
+            goTo(context, "await_manual_machine_id");
+
             return;
         }
 
@@ -340,12 +352,14 @@ public class LaundryFlowPlugin extends FlowPlugin {
             context.set("responseMessage", message);
             context.set("responseButtons", buttons);
 
+            goTo(context, "await_manual_machine_id");
+
             return;
         }
 
         context.set("selectedMachineId", foundMachine.getMachineId());
         context.set("selectedMachineName", foundMachine.getName());
-        handleShowCycleSelection(context);
+        goTo(context, "cycle_selection");
     }
 
     private void handleShowMachineList(FlowContext context) {
@@ -377,13 +391,13 @@ public class LaundryFlowPlugin extends FlowPlugin {
         String input = getInputLower(context);
 
         if ("select_choose".equals(input)) {
-            handleShowMachineList(context);
+            goTo(context, "show_machine_list");
 
             return;
         }
 
         if ("select_enter_id".equals(input)) {
-            handleShowEnterIdPrompt(context);
+            goTo(context, "enter_machine_id");
 
             return;
         }
@@ -402,12 +416,14 @@ public class LaundryFlowPlugin extends FlowPlugin {
                 context.set("responseMessage", message);
                 context.set("responseButtons", buttons);
 
+                goTo(context, "await_machine_selection");
+
                 return;
             }
 
             context.set("selectedMachineId", machine.getMachineId());
             context.set("selectedMachineName", machine.getName());
-            handleShowCycleSelection(context);
+            goTo(context, "cycle_selection");
 
             return;
         }
@@ -418,9 +434,9 @@ public class LaundryFlowPlugin extends FlowPlugin {
         if (typedMachine != null && typedMachine.getStatus() == MachineStatus.AVAILABLE) {
             context.set("selectedMachineId", typedMachine.getMachineId());
             context.set("selectedMachineName", typedMachine.getName());
-            handleShowCycleSelection(context);
+            goTo(context, "cycle_selection");
         } else {
-            handleShowMachineList(context);
+            goTo(context, "show_machine_list");
         }
     }
 
@@ -447,7 +463,7 @@ public class LaundryFlowPlugin extends FlowPlugin {
         String input = getInputLower(context);
 
         if (!"cycle_short".equals(input) && !"cycle_long".equals(input)) {
-            handleShowCycleSelection(context);
+            goTo(context, "cycle_selection");
 
             return;
         }
@@ -477,6 +493,8 @@ public class LaundryFlowPlugin extends FlowPlugin {
                 context.set("responseMessage", message);
                 context.set("responseButtons", buttons);
 
+                goTo(context, "await_cycle");
+
                 return;
             }
 
@@ -490,7 +508,7 @@ public class LaundryFlowPlugin extends FlowPlugin {
         context.set("selectedCyclePrice", selectedCycle.getPrice());
         context.set("selectedCyclePulseCount", selectedCycle.getPulseCount());
 
-        handleInitiatePayment(context);
+        goTo(context, "initiate_payment");
     }
 
     // ========== Payment ==========
@@ -507,14 +525,8 @@ public class LaundryFlowPlugin extends FlowPlugin {
         int amount = priceObj instanceof Number ? ((Number) priceObj).intValue() : 1000;
         int pulseCount = pulseCountObj instanceof Number ? ((Number) pulseCountObj).intValue() : 1;
 
-        String initiatingMessage = t("payment_initiating", context, Map.of(
-                "machine", machineName,
-                "duration", duration,
-                "amount", amount
-        ));
-
-        context.set("responseMessage", initiatingMessage);
-        context.set("responseButtons", List.of());
+        // We'll return a single user-facing message based on whether the payment request
+        // was initiated successfully.
 
         String reference = laundryConfig.getBotId() + "-" + machineId + "-" + System.currentTimeMillis();
 
@@ -538,21 +550,27 @@ public class LaundryFlowPlugin extends FlowPlugin {
         PaymentResult result = paymentGateway.initiatePayment(request);
 
         if (result.isSuccess()) {
-            context.set("paymentSuccessMessage", t("payment_success", context));
+            context.set("responseMessage", t("payment_success", context));
+            context.set("responseButtons", List.of(
+                    createButton("action_my_status", t("btn_my_status", context)),
+                    createButton("action_cancel", t("btn_main_menu", context))
+            ));
             context.set("transactionId", result.getTransactionId());
         } else {
             String errorMessage = result.getErrorMessage() != null ? result.getErrorMessage() : "Payment request failed";
-            context.set("paymentFailedMessage", t("payment_failed", context, Map.of("error", errorMessage)));
+            context.set("responseMessage", t("payment_failed", context, Map.of("error", errorMessage)));
 
             List<FlowState.ButtonOption> buttons = new ArrayList<>();
             buttons.add(createButton("action_wash", t("btn_try_again", context)));
             buttons.add(createButton("action_cancel", t("btn_main_menu", context)));
-            context.set("paymentFailedButtons", buttons);
+            context.set("responseButtons", buttons);
         }
 
         context.set("step", LaundryStep.MAIN_MENU);
         context.set("selectedMachineId", null);
         context.set("selectedMachineName", null);
+
+        goTo(context, "await_menu");
     }
 
     // ========== Status ==========
@@ -573,6 +591,8 @@ public class LaundryFlowPlugin extends FlowPlugin {
         context.set("responseMessage", message);
         context.set("responseButtons", buttons);
         context.set("step", LaundryStep.AWAITING_MENU_CHOICE);
+
+        goTo(context, "await_menu");
     }
 
     private void handleShowMachineAvailability(FlowContext context) {
@@ -627,6 +647,8 @@ public class LaundryFlowPlugin extends FlowPlugin {
         context.set("responseMessage", message.toString());
         context.set("responseButtons", buttons);
         context.set("step", LaundryStep.AWAITING_MENU_CHOICE);
+
+        goTo(context, "await_menu");
     }
 
     // ========== Feedback ==========
@@ -635,6 +657,8 @@ public class LaundryFlowPlugin extends FlowPlugin {
         String input = getInputLower(context);
 
         if (!input.startsWith("feedback_")) {
+            goTo(context, "await_feedback_rating");
+
             return;
         }
 
@@ -651,6 +675,8 @@ public class LaundryFlowPlugin extends FlowPlugin {
                 context.set("responseMessage", message);
                 context.set("responseButtons", buttons);
                 context.set("step", LaundryStep.MAIN_MENU);
+
+                goTo(context, "await_menu");
             } else {
                 String message = t("feedback_thanks_low", context);
 
@@ -658,9 +684,12 @@ public class LaundryFlowPlugin extends FlowPlugin {
                 context.set("responseButtons", List.of());
                 context.set("feedbackRating", rating);
                 context.set("step", LaundryStep.AWAITING_FEEDBACK_COMMENT);
+
+                goTo(context, "await_feedback_comment");
             }
         } catch (NumberFormatException e) {
             log.warn("Invalid feedback rating: {}", input);
+            goTo(context, "await_feedback_rating");
         }
     }
 
@@ -679,6 +708,8 @@ public class LaundryFlowPlugin extends FlowPlugin {
             context.set("responseButtons", buttons);
             context.set("step", LaundryStep.MAIN_MENU);
 
+            goTo(context, "await_menu");
+
             return;
         }
 
@@ -690,6 +721,8 @@ public class LaundryFlowPlugin extends FlowPlugin {
 
                 context.set("responseMessage", message);
                 context.set("responseButtons", List.of());
+
+                goTo(context, "await_feedback_comment");
 
                 return;
             }
@@ -705,6 +738,8 @@ public class LaundryFlowPlugin extends FlowPlugin {
             context.set("responseMessage", message);
             context.set("responseButtons", buttons);
             context.set("step", LaundryStep.MAIN_MENU);
+
+            goTo(context, "await_menu");
         }
     }
 

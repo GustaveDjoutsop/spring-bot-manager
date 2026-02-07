@@ -2,8 +2,8 @@
   "botId": "thomasnetwork",
   "botName": "Thomas Network Access",
   "botType": "thomas_network",
-  "phoneNumberId": "YOUR_PHONE_NUMBER_ID",
-  "verifyToken": "YOUR_VERIFY_TOKEN",
+  "phoneNumberId": "1030993210090797",
+  "verifyToken": "myTestToken",
   "defaultFlowId": "main_menu",
   "flows": {
     "main_menu": {
@@ -13,21 +13,26 @@
       "states": {
         "welcome": {
           "id": "welcome",
-          "type": "message",
-          "template": "Welcome to Thomas Network!\n\n1) Buy Network Access\n2) Help",
-          "next": "await_choice"
-        },
-        "await_choice": {
-          "id": "await_choice",
-          "type": "input",
+          "type": "buttons",
+          "template": "Bienvenue.\n\n\uD83D\uDCCC *Service*\nChoisis une option :",
           "saveAs": "menuChoice",
-          "prompt": "Please choose an option",
+          "buttons": [
+            {"id": "access_network", "title": "\uD83C\uDF10 Acc\u00E8s r\u00E9seau"},
+            {"id": "pressing", "title": "\uD83E\uDDFA Pressing"},
+            {"id": "help", "title": "\u2753 Aide"}
+          ],
           "next": "route_menu"
         },
         "route_menu": {
           "id": "route_menu",
           "type": "action",
           "action": "menu.route"
+        },
+        "pressing_message": {
+          "id": "pressing_message",
+          "type": "message",
+          "template": "\uD83E\uDDFA Pressing\n\nBient\u00F4t disponible.",
+          "next": "main_menu"
         },
         "bandwidth_list_action": {
           "id": "bandwidth_list_action",

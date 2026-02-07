@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.core.env.Environment;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -35,6 +36,8 @@ public class PaymentsController {
 
     private final CamPayProperties camPayProperties;
 
+    private final Environment environment;
+
     private final ObjectMapper objectMapper;
 
     @PostMapping("/webhooks/campay/{botId}")
@@ -45,8 +48,9 @@ public class PaymentsController {
 
         log.debug("Received CamPay webhook for bot {}", botId);
 
-        if (StringUtils.hasText(camPayProperties.getWebhookSecret())) {
-            if (!signatureVerifier.verifyHmacSha256(camPayProperties.getWebhookSecret(), rawBody, signature)) {
+        String webhookSecret = resolveCamPayWebhookSecret(botId);
+        if (StringUtils.hasText(webhookSecret)) {
+            if (!signatureVerifier.verifyHmacSha256(webhookSecret, rawBody, signature)) {
                 log.warn("Invalid CamPay webhook signature for bot {}", botId);
 
                 return ResponseEntity.status(401).body(Map.of("error", "Invalid signature"));
@@ -68,6 +72,21 @@ public class PaymentsController {
 
             return ResponseEntity.status(500).body(Map.of("error", "Processing error"));
         }
+    }
+
+    private String resolveCamPayWebhookSecret(String botId) {
+        if (StringUtils.hasText(botId)) {
+            String envKey = "CAMPAY_WEBHOOK_SECRET_" + botId.toUpperCase().replace("-", "_");
+            String secret = environment.getProperty(envKey);
+            if (!StringUtils.hasText(secret)) {
+                secret = environment.getProperty("campay.webhook-secret." + botId);
+            }
+            if (StringUtils.hasText(secret)) {
+                return secret;
+            }
+        }
+
+        return camPayProperties.getWebhookSecret();
     }
 
     @GetMapping("/{botId}/transactions/{transactionId}")

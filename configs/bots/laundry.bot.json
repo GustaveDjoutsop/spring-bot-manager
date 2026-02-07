@@ -2,8 +2,8 @@
   "botId": "laundry",
   "botName": "Smart Laundry",
   "botType": "laundry",
-  "phoneNumberId": "YOUR_PHONE_NUMBER_ID",
-  "verifyToken": "YOUR_VERIFY_TOKEN",
+  "phoneNumberId": "954151401109786",
+  "verifyToken": "myTester",
   "mqtt": {
     "topicPrefix": "laundry"
   },

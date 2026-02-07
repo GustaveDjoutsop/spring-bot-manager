@@ -57,6 +57,21 @@ public class BotRegistry {
     public void registerBot(String name, BaseBot bot) {
         BotConfig config = bot.getConfig();
 
+        BaseBot existing = botsByPhoneId.get(config.getPhoneNumberId());
+        if (existing != null) {
+            String existingBotId = existing.getConfig() != null ? existing.getConfig().getBotId() : "<unknown>";
+
+            log.error(
+                "Duplicate phoneNumberId '{}' for bot '{}'. Already registered to bot '{}'. " +
+                    "Webhook routing uses metadata.phone_number_id, so each bot must have a unique phoneNumberId.",
+                config.getPhoneNumberId(),
+                config.getBotId(),
+                existingBotId
+            );
+
+            return;
+        }
+
         botsByName.put(name, bot);
         botsByPhoneId.put(config.getPhoneNumberId(), bot);
         verifyTokenToBot.put(config.getVerifyToken(), name);
@@ -79,24 +94,33 @@ public class BotRegistry {
     }
 
     private void loadBotsFromDirectory() {
+        PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
+
+        String classpathPattern = "classpath:" + botProperties.getConfigDirectory() + "/*.bot.json";
+        String filePattern = "file:" + botProperties.getConfigDirectory() + "/*.bot.json";
+
+        Resource[] resources = new Resource[0];
         try {
-            PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
-            String pattern = "classpath:" + botProperties.getConfigDirectory() + "/*.bot.json";
-            Resource[] resources = resolver.getResources(pattern);
-
-            if (resources.length == 0) {
-                pattern = "file:" + botProperties.getConfigDirectory() + "/*.bot.json";
-                resources = resolver.getResources(pattern);
-            }
-
-            for (Resource resource : resources) {
-                loadBotConfig(resource);
-            }
-
-            log.info("Loaded {} bots from directory", botsByName.size());
+            resources = resolver.getResources(classpathPattern);
         } catch (IOException exception) {
-            log.error("Failed to load bots from directory: {}", exception.getMessage());
+            log.debug("Classpath bot config scan failed ({}): {}", classpathPattern, exception.getMessage());
         }
+
+        if (resources.length == 0) {
+            try {
+                resources = resolver.getResources(filePattern);
+            } catch (IOException exception) {
+                log.error("Failed to load bots from directory: {}", exception.getMessage());
+
+                return;
+            }
+        }
+
+        for (Resource resource : resources) {
+            loadBotConfig(resource);
+        }
+
+        log.info("Loaded {} bots from directory", botsByName.size());
     }
 
     private void loadBotConfig(Resource resource) {

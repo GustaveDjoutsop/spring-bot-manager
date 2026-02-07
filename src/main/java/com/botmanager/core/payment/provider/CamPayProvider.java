@@ -7,6 +7,7 @@ import com.botmanager.core.payment.PaymentStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -28,14 +29,31 @@ public class CamPayProvider extends PaymentProvider {
 
     private final ObjectMapper objectMapper;
 
+    private final Environment environment;
+
     @Override
     public String getName() {
         return "campay";
     }
 
+    public boolean hasAnyPerBotTokenConfigured() {
+        return System.getenv().entrySet().stream()
+                .anyMatch(e -> e.getKey() != null
+                        && e.getKey().startsWith("CAMPAY_TOKEN_")
+                        && e.getValue() != null
+                        && !e.getValue().isBlank());
+    }
+
+    public boolean isConfiguredForBot(String botId) {
+        String token = resolveToken(botId);
+        return token != null && !token.isBlank();
+    }
+
     @Override
     public PaymentResult initiatePayment(PaymentRequest request) {
-        if (!camPayProperties.isConfigured()) {
+        String botId = request != null ? request.getBotId() : null;
+        String token = resolveToken(botId);
+        if (token == null || token.isBlank()) {
             return PaymentResult.builder()
                     .success(false)
                     .errorMessage("CamPay not configured")
@@ -43,7 +61,7 @@ public class CamPayProvider extends PaymentProvider {
         }
 
         try {
-            String url = camPayProperties.getBaseUrl() + camPayProperties.getCollectPath();
+            String url = resolveBaseUrl(botId) + resolveCollectPath(botId);
 
             Map<String, Object> payload = new HashMap<>();
             payload.put("amount", String.valueOf(request.getAmount()));
@@ -52,7 +70,7 @@ public class CamPayProvider extends PaymentProvider {
             payload.put("description", request.getDescription());
             payload.put("external_reference", request.getReference());
 
-            HttpHeaders headers = createHeaders();
+            HttpHeaders headers = createHeaders(token, resolveAuthScheme(botId));
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
 
             ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, entity, Map.class);
@@ -86,15 +104,16 @@ public class CamPayProvider extends PaymentProvider {
     }
 
     @Override
-    public PaymentStatus checkStatus(String transactionId) {
-        if (!camPayProperties.isConfigured()) {
+    public PaymentStatus checkStatus(String botId, String transactionId) {
+        String token = resolveToken(botId);
+        if (token == null || token.isBlank()) {
             return PaymentStatus.PENDING;
         }
 
         try {
-            String url = camPayProperties.getBaseUrl() + camPayProperties.getStatusPath() + transactionId + "/";
+            String url = resolveBaseUrl(botId) + resolveStatusPath(botId) + transactionId + "/";
 
-            HttpHeaders headers = createHeaders();
+            HttpHeaders headers = createHeaders(token, resolveAuthScheme(botId));
             HttpEntity<Void> entity = new HttpEntity<>(headers);
 
             ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
@@ -138,12 +157,88 @@ public class CamPayProvider extends PaymentProvider {
                 .build();
     }
 
-    private HttpHeaders createHeaders() {
+    private HttpHeaders createHeaders(String token, String authScheme) {
         HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", camPayProperties.getAuthScheme() + " " + camPayProperties.getToken());
+        String scheme = (authScheme == null || authScheme.isBlank()) ? camPayProperties.getAuthScheme() : authScheme;
+        headers.set("Authorization", scheme + " " + token);
         headers.set("Content-Type", "application/json");
 
         return headers;
+    }
+
+    private String resolveToken(String botId) {
+        if (botId != null && !botId.isBlank()) {
+            String envKey = "CAMPAY_TOKEN_" + botId.toUpperCase().replace("-", "_");
+            String token = environment.getProperty(envKey);
+            if (token == null || token.isBlank()) {
+                token = environment.getProperty("campay.token." + botId);
+            }
+            if (token != null && !token.isBlank()) {
+                return token;
+            }
+        }
+
+        return camPayProperties.getToken();
+    }
+
+    private String resolveBaseUrl(String botId) {
+        if (botId != null && !botId.isBlank()) {
+            String envKey = "CAMPAY_BASE_URL_" + botId.toUpperCase().replace("-", "_");
+            String url = environment.getProperty(envKey);
+            if (url == null || url.isBlank()) {
+                url = environment.getProperty("campay.base-url." + botId);
+            }
+            if (url != null && !url.isBlank()) {
+                return url;
+            }
+        }
+
+        return camPayProperties.getBaseUrl();
+    }
+
+    private String resolveAuthScheme(String botId) {
+        if (botId != null && !botId.isBlank()) {
+            String envKey = "CAMPAY_AUTH_SCHEME_" + botId.toUpperCase().replace("-", "_");
+            String scheme = environment.getProperty(envKey);
+            if (scheme == null || scheme.isBlank()) {
+                scheme = environment.getProperty("campay.auth-scheme." + botId);
+            }
+            if (scheme != null && !scheme.isBlank()) {
+                return scheme;
+            }
+        }
+
+        return camPayProperties.getAuthScheme();
+    }
+
+    private String resolveCollectPath(String botId) {
+        if (botId != null && !botId.isBlank()) {
+            String envKey = "CAMPAY_COLLECT_PATH_" + botId.toUpperCase().replace("-", "_");
+            String path = environment.getProperty(envKey);
+            if (path == null || path.isBlank()) {
+                path = environment.getProperty("campay.collect-path." + botId);
+            }
+            if (path != null && !path.isBlank()) {
+                return path;
+            }
+        }
+
+        return camPayProperties.getCollectPath();
+    }
+
+    private String resolveStatusPath(String botId) {
+        if (botId != null && !botId.isBlank()) {
+            String envKey = "CAMPAY_STATUS_PATH_" + botId.toUpperCase().replace("-", "_");
+            String path = environment.getProperty(envKey);
+            if (path == null || path.isBlank()) {
+                path = environment.getProperty("campay.status-path." + botId);
+            }
+            if (path != null && !path.isBlank()) {
+                return path;
+            }
+        }
+
+        return camPayProperties.getStatusPath();
     }
 
 }

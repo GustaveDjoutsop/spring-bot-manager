@@ -12,7 +12,7 @@ public abstract class PaymentProvider {
 
     public abstract PaymentResult initiatePayment(PaymentRequest request);
 
-    public abstract PaymentStatus checkStatus(String transactionId);
+    public abstract PaymentStatus checkStatus(String botId, String transactionId);
 
     public abstract PaymentResult handleWebhook(Map<String, Object> payload);
 

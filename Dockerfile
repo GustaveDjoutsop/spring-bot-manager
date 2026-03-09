@@ -1,4 +1,4 @@
-FROM amazoncorretto:17-alpine
+FROM eclipse-temurin:21-jre-alpine
 
 # Create non-root user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
@@ -7,7 +7,7 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 WORKDIR /app
 
 # Copy application files
-ARG JAR_FILE=target/*.jar
+ARG JAR_FILE=bot-app/target/*.jar
 COPY ${JAR_FILE} app.jar
 COPY run.sh /run.sh
 RUN chmod +x /run.sh

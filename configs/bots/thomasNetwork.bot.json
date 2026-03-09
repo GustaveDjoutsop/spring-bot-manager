@@ -3,7 +3,6 @@
   "botName": "Thomas Network Access",
   "botType": "thomas_network",
   "phoneNumberId": "1030993210090797",
-  "verifyToken": "myTestToken",
   "defaultFlowId": "main_menu",
   "flows": {
     "main_menu": {

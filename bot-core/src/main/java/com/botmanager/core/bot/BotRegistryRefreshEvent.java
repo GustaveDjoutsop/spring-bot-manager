@@ -1,4 +1,4 @@
-package com.botmanager.admin;
+package com.botmanager.core.bot;
 
 import org.springframework.context.ApplicationEvent;
 

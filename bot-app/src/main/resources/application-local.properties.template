@@ -4,7 +4,7 @@
 server.port=3000
 management.server.port=8081
 
-spring.datasource.url=jdbc:postgresql://localhost:5432/smartbot
+spring.datasource.url=jdbc:postgresql://localhost:15432/smartbot
 spring.datasource.username=smartbot
 spring.datasource.password=smartbot
 spring.jpa.hibernate.ddl-auto=validate

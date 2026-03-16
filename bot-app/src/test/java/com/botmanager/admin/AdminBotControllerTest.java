@@ -1,0 +1,70 @@
+package com.botmanager.admin;
+
+import com.botmanager.core.persistence.repository.BusinessRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.HttpStatus;
+import org.springframework.test.context.ActiveProfiles;
+
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ActiveProfiles("test")
+class AdminBotControllerTest {
+
+    @Autowired
+    private TestRestTemplate restTemplate;
+
+    @Autowired
+    private BusinessRepository businessRepository;
+
+    @BeforeEach
+    void cleanup() {
+        businessRepository.deleteAll();
+    }
+
+    @Test
+    void createBotShouldPersistAndReturnCreated() {
+        AdminDtos.BotConfigRequest request = AdminDtos.BotConfigRequest.builder()
+                .botId("test-laundry")
+                .botName("Test Laundry")
+                .botType("laundry")
+                .phoneNumberId("123456789")
+                .verifyToken("test-verify")
+                .accessToken("test-access")
+                .config(Map.of("defaultFlowId", "laundry_flow", "flows", Map.of()))
+                .build();
+
+        var response = restTemplate
+                .withBasicAuth("testadmin", "testpass")
+                .postForEntity("/admin/bots", request, AdminDtos.BotConfigResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getBotId()).isEqualTo("test-laundry");
+        assertThat(response.getBody().isHasAccessToken()).isTrue();
+        assertThat(response.getBody().getConfig()).doesNotContainKeys("verifyToken", "accessToken", "appSecret");
+    }
+
+    @Test
+    void listBotsWithoutAuthShouldReturn401() {
+        var response = restTemplate.getForEntity("/admin/bots", String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void webhookWithoutAuthShouldBePermitted() {
+        var response = restTemplate.getForEntity(
+                "/api/whatsapp/webhook?hub.mode=subscribe&hub.verify_token=test&hub.challenge=challenge123",
+                String.class
+        );
+
+        assertThat(response.getStatusCode()).isNotEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+}

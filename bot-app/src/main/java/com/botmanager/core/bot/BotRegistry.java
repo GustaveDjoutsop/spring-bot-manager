@@ -6,12 +6,16 @@ import com.botmanager.core.flow.FlowEngine;
 import com.botmanager.core.i18n.TranslationService;
 import com.botmanager.core.machine.MachineService;
 import com.botmanager.core.payment.PaymentGateway;
+import com.botmanager.core.persistence.entity.BusinessEntity;
+import com.botmanager.core.persistence.repository.BusinessRepository;
 import com.botmanager.core.redis.RedisManager;
 import com.botmanager.core.whatsapp.WhatsAppClientFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.event.EventListener;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
@@ -20,6 +24,8 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -48,6 +54,9 @@ public class BotRegistry implements BotLookup {
 
     private final Environment environment;
 
+    @Autowired(required = false)
+    private BusinessRepository businessRepository;
+
     private final Map<String, BaseBot> botsByName = new ConcurrentHashMap<>();
 
     private final Map<String, BaseBot> botsByPhoneId = new ConcurrentHashMap<>();
@@ -56,7 +65,17 @@ public class BotRegistry implements BotLookup {
 
     @PostConstruct
     void init() {
+        if (loadBotsFromDatabase()) {
+            return;
+        }
+
         loadBotsFromDirectory();
+    }
+
+    @EventListener
+    public void onRefreshEvent(BotRegistryRefreshEvent event) {
+        log.info("Received BotRegistry refresh event; reloading bots from database");
+        reloadFromDatabase();
     }
 
     public void registerBot(String name, BaseBot bot) {
@@ -101,6 +120,37 @@ public class BotRegistry implements BotLookup {
         return Optional.ofNullable(verifyTokenToBot.get(verifyToken));
     }
 
+    public void reloadFromDatabase() {
+        if (businessRepository == null) {
+            log.warn("Business repository not available; skipping database reload");
+
+            return;
+        }
+
+        try {
+            List<BusinessEntity> dbConfigs = businessRepository.findByActiveTrue();
+            if (dbConfigs.isEmpty()) {
+                log.warn("No active bot configs found in database. Keeping current registry.");
+
+                return;
+            }
+
+            clearRegistry();
+
+            for (BusinessEntity entity : dbConfigs) {
+                try {
+                    loadBotFromEntity(entity);
+                } catch (Exception exception) {
+                    log.error("Failed to load bot {} from database: {}", entity.getBotId(), exception.getMessage());
+                }
+            }
+
+            log.info("Registry reloaded from database with {} bots", botsByName.size());
+        } catch (Exception exception) {
+            log.error("Failed to reload bots from database: {}", exception.getMessage());
+        }
+    }
+
     private void loadBotsFromDirectory() {
         PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
 
@@ -131,6 +181,39 @@ public class BotRegistry implements BotLookup {
         log.info("Loaded {} bots from directory", botsByName.size());
     }
 
+    private boolean loadBotsFromDatabase() {
+        if (businessRepository == null) {
+            return false;
+        }
+
+        try {
+            List<BusinessEntity> dbConfigs = businessRepository.findByActiveTrue();
+            if (dbConfigs.isEmpty()) {
+                return false;
+            }
+
+            log.info("Loading {} bots from database", dbConfigs.size());
+
+            for (BusinessEntity entity : dbConfigs) {
+                try {
+                    loadBotFromEntity(entity);
+                } catch (Exception exception) {
+                    log.error("Failed to load bot {} from database: {}", entity.getBotId(), exception.getMessage());
+                }
+            }
+
+            if (!botsByName.isEmpty()) {
+                log.info("Loaded {} bots from database", botsByName.size());
+                return true;
+            }
+        } catch (Exception exception) {
+            log.warn("Database not available for bot loading, falling back to JSON files: {}", exception.getMessage());
+        }
+
+        clearRegistry();
+        return false;
+    }
+
     private void loadBotConfig(Resource resource) {
         try (InputStream inputStream = resource.getInputStream()) {
             // First pass: read as generic BotConfig to determine type
@@ -155,6 +238,33 @@ public class BotRegistry implements BotLookup {
             }
         } catch (Exception exception) {
             log.error("Failed to load bot config {}: {}", resource.getFilename(), exception.getMessage());
+        }
+    }
+
+    private void loadBotFromEntity(BusinessEntity entity) {
+        Map<String, Object> configMap = entity.getConfig() != null
+                ? new LinkedHashMap<>(entity.getConfig())
+                : new LinkedHashMap<>();
+        configMap.put("botId", entity.getBotId());
+        configMap.put("botName", entity.getName());
+        configMap.put("botType", entity.getIndustry());
+        configMap.put("phoneNumberId", entity.getPhoneNumberId());
+
+        try {
+            byte[] configBytes = objectMapper.writeValueAsBytes(configMap);
+            BotConfig config = parseTypedConfig(configBytes, entity.getIndustry());
+            config.setBotId(entity.getBotId());
+            config.setBotName(entity.getName());
+            config.setBotType(entity.getIndustry());
+            config.setPhoneNumberId(entity.getPhoneNumberId());
+            config.setVerifyToken(entity.getVerifyToken());
+
+            BaseBot bot = createBotInstance(config);
+            if (bot != null) {
+                registerBot(config.getBotId(), bot);
+            }
+        } catch (Exception exception) {
+            log.error("Failed to deserialize bot {} from database: {}", entity.getBotId(), exception.getMessage());
         }
     }
 
@@ -217,6 +327,12 @@ public class BotRegistry implements BotLookup {
                     paymentGateway
             );
         };
+    }
+
+    private void clearRegistry() {
+        botsByName.clear();
+        botsByPhoneId.clear();
+        verifyTokenToBot.clear();
     }
 
 }

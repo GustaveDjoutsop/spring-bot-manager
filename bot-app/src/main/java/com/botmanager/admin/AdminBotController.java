@@ -1,5 +1,6 @@
 package com.botmanager.admin;
 
+import com.botmanager.core.bot.BotRegistryRefreshEvent;
 import com.botmanager.core.persistence.entity.BusinessEntity;
 import com.botmanager.core.persistence.repository.BusinessRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -171,11 +173,9 @@ public class AdminBotController {
         config.put("botName", entity.getName());
         config.put("botType", entity.getIndustry());
         config.put("phoneNumberId", entity.getPhoneNumberId());
-        if (StringUtils.hasText(entity.getVerifyToken())) {
-            config.put("verifyToken", entity.getVerifyToken());
-        } else {
-            config.remove("verifyToken");
-        }
+        config.remove("verifyToken");
+        config.remove("accessToken");
+        config.remove("appSecret");
 
         return config;
     }
@@ -189,7 +189,7 @@ public class AdminBotController {
                 .hasVerifyToken(StringUtils.hasText(entity.getVerifyToken()))
                 .hasAccessToken(StringUtils.hasText(entity.getAccessToken()))
                 .hasAppSecret(StringUtils.hasText(entity.getAppSecret()))
-                .config(entity.getConfig())
+                .config(sanitizeConfig(entity.getConfig()))
                 .enabled(entity.isActive())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
@@ -216,5 +216,24 @@ public class AdminBotController {
 
     private String blankToNull(String value) {
         return StringUtils.hasText(value) ? value : null;
+    }
+
+    private Map<String, Object> sanitizeConfig(Map<String, Object> config) {
+        if (config == null) {
+            return null;
+        }
+
+        return config.entrySet().stream()
+                .filter(entry -> !isSecretKey(entry.getKey()))
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        (left, right) -> right,
+                        LinkedHashMap::new
+                ));
+    }
+
+    private boolean isSecretKey(String key) {
+        return "verifyToken".equals(key) || "accessToken".equals(key) || "appSecret".equals(key);
     }
 }

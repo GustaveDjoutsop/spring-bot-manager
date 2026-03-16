@@ -17,7 +17,7 @@ docker compose up -d postgres redis
 ```
 
 This starts:
-- PostgreSQL on `localhost:5432` (db: `smartbot`, user: `smartbot`, password: `smartbot`)
+- PostgreSQL on `localhost:15432` (db: `smartbot`, user: `smartbot`, password: `smartbot`)
 - Redis on `localhost:6379`
 
 ## 3. Minimal Variables to Run the Service
@@ -26,7 +26,7 @@ For local startup (without real WhatsApp/CamPay traffic), these are enough:
 
 ```powershell
 $env:SPRING_PROFILES_ACTIVE = "local"
-$env:DATABASE_URL = "jdbc:postgresql://localhost:5432/smartbot"
+$env:DATABASE_URL = "jdbc:postgresql://localhost:15432/smartbot"
 $env:DATABASE_USERNAME = "smartbot"
 $env:DATABASE_PASSWORD = "smartbot"
 $env:REDIS_URL = "redis://localhost:6379"
@@ -59,7 +59,7 @@ java -jar bot-app/target/bot-app-0.1.0-SNAPSHOT.jar
 
 | Variable | Required | Default | Purpose |
 |---|---|---|---|
-| `DATABASE_URL` | Yes (practically) | `jdbc:postgresql://localhost:5432/smartbot` | PostgreSQL JDBC URL |
+| `DATABASE_URL` | Yes (practically) | `jdbc:postgresql://localhost:15432/smartbot` | PostgreSQL JDBC URL |
 | `DATABASE_USERNAME` | Yes (practically) | `smartbot` | DB username |
 | `DATABASE_PASSWORD` | Yes (practically) | `smartbot` | DB password |
 | `REDIS_URL` | No | `redis://localhost:6379` | Redis URL; in-memory fallback exists if unavailable |
@@ -179,7 +179,7 @@ $env:SMARTBOT_BOTS_PHARMACY_ENABLED = "true"
 
 # 2) minimum runtime vars
 $env:SPRING_PROFILES_ACTIVE = "local"
-$env:DATABASE_URL = "jdbc:postgresql://localhost:5432/smartbot"
+$env:DATABASE_URL = "jdbc:postgresql://localhost:15432/smartbot"
 $env:DATABASE_USERNAME = "smartbot"
 $env:DATABASE_PASSWORD = "smartbot"
 $env:REDIS_URL = "redis://localhost:6379"

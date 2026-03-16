@@ -20,15 +20,15 @@ class BotRouterIT extends BaseIntegrationTest {
         assertThat(laundry).isPresent();
         assertThat(laundry.get().getConfig().getBotId()).isEqualTo("laundry");
 
-        var thomasNetwork = botLookup.getBotByName("thomasNetwork");
+        var thomasNetwork = botLookup.getBotByName("thomasnetwork");
         assertThat(thomasNetwork).isPresent();
-        assertThat(thomasNetwork.get().getConfig().getBotId()).isEqualTo("thomasNetwork");
+        assertThat(thomasNetwork.get().getConfig().getBotId()).isEqualTo("thomasnetwork");
     }
 
     @Test
     void differentBotsHaveDifferentPhoneIds() {
         var laundry = botLookup.getBotByName("laundry");
-        var thomasNetwork = botLookup.getBotByName("thomasNetwork");
+        var thomasNetwork = botLookup.getBotByName("thomasnetwork");
 
         assertThat(laundry).isPresent();
         assertThat(thomasNetwork).isPresent();

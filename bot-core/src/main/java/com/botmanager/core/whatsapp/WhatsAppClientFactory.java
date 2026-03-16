@@ -1,11 +1,12 @@
 package com.botmanager.core.whatsapp;
 
 import com.botmanager.config.WhatsAppProperties;
+import com.botmanager.core.bot.BotRegistryRefreshEvent;
 import com.botmanager.core.persistence.repository.BusinessRepository;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.event.EventListener;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
@@ -71,6 +72,12 @@ public class WhatsAppClientFactory {
 
     public void clearCache() {
         clientCache.clear();
+    }
+
+    @EventListener
+    public void onRefreshEvent(BotRegistryRefreshEvent event) {
+        log.info("Clearing WhatsApp client cache due to bot registry refresh");
+        clearCache();
     }
 
 }

@@ -1,8 +1,11 @@
 package com.botmanager.core.whatsapp;
 
 import com.botmanager.config.WhatsAppProperties;
+import com.botmanager.core.persistence.repository.BusinessRepository;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
@@ -23,6 +26,9 @@ public class WhatsAppClientFactory {
 
     private final Map<String, WhatsAppClient> clientCache = new ConcurrentHashMap<>();
 
+    @Autowired(required = false)
+    private BusinessRepository businessRepository;
+
     public WhatsAppClient getClient(String botId, String phoneNumberId) {
         String cacheKey = botId + ":" + phoneNumberId;
 
@@ -40,6 +46,19 @@ public class WhatsAppClientFactory {
     }
 
     private String getAccessToken(String botId) {
+        if (businessRepository != null) {
+            try {
+                String token = businessRepository.findByBotId(botId)
+                        .map(business -> business.getAccessToken())
+                        .orElse(null);
+                if (token != null && !token.isBlank()) {
+                    return token;
+                }
+            } catch (Exception exception) {
+                log.warn("Failed to resolve DB access token for bot {}: {}", botId, exception.getMessage());
+            }
+        }
+
         String envKey = "WHATSAPP_ACCESS_TOKEN_" + botId.toUpperCase().replace("-", "_");
         String token = environment.getProperty(envKey);
 
@@ -48,6 +67,10 @@ public class WhatsAppClientFactory {
         }
 
         return token;
+    }
+
+    public void clearCache() {
+        clientCache.clear();
     }
 
 }

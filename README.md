@@ -2,6 +2,8 @@
 
 Spring Boot **modular monolith** service for a multi-tenant Bot-as-a-Service platform (WhatsApp Cloud API).
 
+Local setup and required environment variables are documented in `document/LOCAL_RUN_GUIDE.md`.
+
 ## Features
 
 - **Multi-bot routing** via `phone_number_id`

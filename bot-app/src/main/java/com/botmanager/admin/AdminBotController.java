@@ -10,7 +10,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -94,8 +93,8 @@ public class AdminBotController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @DeleteMapping("/{botId}")
-    public ResponseEntity<?> deleteBot(@PathVariable String botId) {
+    @PutMapping("/{botId}/disable")
+    public ResponseEntity<?> disableBot(@PathVariable String botId) {
         return businessRepository.findByBotId(botId)
                 .map(entity -> {
                     entity.setActive(false);

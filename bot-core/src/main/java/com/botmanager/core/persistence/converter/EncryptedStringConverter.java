@@ -28,8 +28,12 @@ public class EncryptedStringConverter implements AttributeConverter<String, byte
 
     public EncryptedStringConverter(@Value("${encryption.master-key:}") String masterKeyHex) {
         if (StringUtils.hasText(masterKeyHex) && masterKeyHex.length() == 64) {
-            byte[] keyBytes = hexToBytes(masterKeyHex);
-            secretKey = new SecretKeySpec(keyBytes, "AES");
+            try {
+                byte[] keyBytes = hexToBytes(masterKeyHex);
+                secretKey = new SecretKeySpec(keyBytes, "AES");
+            } catch (IllegalArgumentException exception) {
+                throw new IllegalStateException("Invalid encryption master key; expected 64 hexadecimal characters.", exception);
+            }
         } else {
             secretKey = null;
             log.warn("No encryption master key configured; bot secrets will be stored as plain text bytes.");
@@ -43,7 +47,7 @@ public class EncryptedStringConverter implements AttributeConverter<String, byte
         }
 
         if (secretKey == null) {
-            return attribute.getBytes(StandardCharsets.UTF_8);
+            throw new IllegalStateException("No encryption master key configured; refusing to persist non-null bot secret.");
         }
 
         try {
@@ -92,11 +96,21 @@ public class EncryptedStringConverter implements AttributeConverter<String, byte
     }
 
     private static byte[] hexToBytes(String hex) {
+        if (hex.length() % 2 != 0) {
+            throw new IllegalArgumentException("Hex string must have an even length.");
+        }
+
         byte[] data = new byte[hex.length() / 2];
 
         for (int index = 0; index < hex.length(); index += 2) {
-            data[index / 2] = (byte) ((Character.digit(hex.charAt(index), 16) << 4)
-                    + Character.digit(hex.charAt(index + 1), 16));
+            int high = Character.digit(hex.charAt(index), 16);
+            int low = Character.digit(hex.charAt(index + 1), 16);
+
+            if (high == -1 || low == -1) {
+                throw new IllegalArgumentException("Invalid hexadecimal character in encryption master key.");
+            }
+
+            data[index / 2] = (byte) ((high << 4) + low);
         }
 
         return data;

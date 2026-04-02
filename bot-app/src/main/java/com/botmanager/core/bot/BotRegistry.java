@@ -116,11 +116,11 @@ public class BotRegistry implements BotLookup {
     }
 
     @Override
-    public Optional<String> getBotNameByVerifyToken(String verifyToken) {
+    public synchronized Optional<String> getBotNameByVerifyToken(String verifyToken) {
         return Optional.ofNullable(verifyTokenToBot.get(verifyToken));
     }
 
-    public void reloadFromDatabase() {
+    public synchronized void reloadFromDatabase() {
         if (businessRepository == null) {
             log.warn("Business repository not available; skipping database reload");
 

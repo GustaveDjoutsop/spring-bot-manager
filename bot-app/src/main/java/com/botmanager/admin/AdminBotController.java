@@ -159,9 +159,7 @@ public class AdminBotController {
             entity.setActive(true);
         }
 
-        if (request.getConfig() != null || creating) {
-            entity.setConfig(buildConfig(entity, request.getConfig()));
-        }
+        entity.setConfig(buildConfig(entity, request.getConfig()));
     }
 
     private Map<String, Object> buildConfig(BusinessEntity entity, Map<String, Object> requestConfig) {

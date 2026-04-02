@@ -1,6 +1,8 @@
 package com.botmanager.integration;
 
+import com.botmanager.auth.AuthDtos;
 import com.botmanager.core.persistence.repository.BusinessRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,9 +10,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -27,9 +26,24 @@ class AdminBotControllerIT extends BaseIntegrationTest {
     @Autowired
     private BusinessRepository businessRepository;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @BeforeEach
     void cleanup() {
         businessRepository.deleteAll();
+    }
+
+    private String getAdminToken() throws Exception {
+        String loginPayload = "{\"username\":\"testadmin\",\"password\":\"testpass\"}";
+        var result = mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginPayload))
+                .andExpect(status().isOk())
+                .andReturn();
+        AuthDtos.TokenResponse tokenResponse = objectMapper.readValue(
+                result.getResponse().getContentAsString(), AuthDtos.TokenResponse.class);
+        return tokenResponse.getToken();
     }
 
     @Test
@@ -40,33 +54,30 @@ class AdminBotControllerIT extends BaseIntegrationTest {
 
     @Test
     void createBotPersistsConfiguration() throws Exception {
+        String token = getAdminToken();
+
         String payload = """
                 {
-                  \"botId\": \"test-laundry\",
-                  \"botName\": \"Test Laundry\",
-                  \"botType\": \"laundry\",
-                  \"phoneNumberId\": \"123456789\",
-                  \"verifyToken\": \"verify-token\",
-                  \"accessToken\": \"access-token\",
-                  \"config\": {
-                    \"defaultFlowId\": \"laundry_flow\",
-                    \"flows\": {}
+                  "botId": "test-laundry",
+                  "botName": "Test Laundry",
+                  "botType": "laundry",
+                  "phoneNumberId": "123456789",
+                  "verifyToken": "verify-token",
+                  "accessToken": "access-token",
+                  "config": {
+                    "defaultFlowId": "laundry_flow",
+                    "flows": {}
                   }
                 }
                 """;
 
         mockMvc.perform(post("/admin/bots")
-                        .header("Authorization", basicAuth("testadmin", "testpass"))
+                        .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.botId").value("test-laundry"))
                 .andExpect(jsonPath("$.hasAccessToken").value(true))
                 .andExpect(jsonPath("$.enabled").value(true));
-    }
-
-    private String basicAuth(String username, String password) {
-        String credentials = username + ":" + password;
-        return "Basic " + Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
     }
 }

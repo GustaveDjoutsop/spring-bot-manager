@@ -1,11 +1,15 @@
 package com.botmanager.admin;
 
+import com.botmanager.auth.AuthDtos;
 import com.botmanager.core.persistence.repository.BusinessRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -28,8 +32,20 @@ class AdminBotControllerTest {
         businessRepository.deleteAll();
     }
 
+    private String getAdminToken() {
+        AuthDtos.LoginRequest loginRequest = new AuthDtos.LoginRequest();
+        loginRequest.setUsername("testadmin");
+        loginRequest.setPassword("testpass");
+        var response = restTemplate.postForEntity("/auth/login", loginRequest, AuthDtos.TokenResponse.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        return response.getBody().getToken();
+    }
+
     @Test
     void createBotShouldPersistAndReturnCreated() {
+        String token = getAdminToken();
+
         AdminDtos.BotConfigRequest request = AdminDtos.BotConfigRequest.builder()
                 .botId("test-laundry")
                 .botName("Test Laundry")
@@ -40,9 +56,10 @@ class AdminBotControllerTest {
                 .config(Map.of("defaultFlowId", "laundry_flow", "flows", Map.of()))
                 .build();
 
-        var response = restTemplate
-                .withBasicAuth("testadmin", "testpass")
-                .postForEntity("/admin/bots", request, AdminDtos.BotConfigResponse.class);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        var response = restTemplate.exchange("/admin/bots", HttpMethod.POST,
+                new HttpEntity<>(request, headers), AdminDtos.BotConfigResponse.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(response.getBody()).isNotNull();

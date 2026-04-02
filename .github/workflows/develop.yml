@@ -1,10 +1,8 @@
-name: CI
+name: Develop CI
 
 on:
   push:
-    branches: [develop, main]
-  pull_request:
-    branches: [develop, main]
+    branches: [develop]
 
 jobs:
   build:
@@ -34,7 +32,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: spring-bot-manager-jar
-          path: target/*.jar
+          path: bot-app/target/*.jar
           retention-days: 7
 
   lint:
@@ -71,7 +69,7 @@ jobs:
       - name: OWASP Dependency Check
         run: mvn org.owasp:dependency-check-maven:check -B || true
 
-  docker:
+  docker-validate:
     runs-on: ubuntu-latest
     needs: build
 
@@ -79,10 +77,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: spring-bot-manager-jar
+          path: bot-app/target/
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build Docker image
+      - name: Build Docker image (validate only)
         uses: docker/build-push-action@v5
         with:
           context: .

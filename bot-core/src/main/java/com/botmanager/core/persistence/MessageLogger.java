@@ -14,6 +14,8 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class MessageLogger {
 
+    private static final int MAX_CONTENT_LENGTH = 4096;
+
     private final MessageRepository messageRepository;
 
     private final BusinessRepository businessRepository;
@@ -34,15 +36,34 @@ public class MessageLogger {
 
             MessageEntity entity = new MessageEntity();
             entity.setBusiness(business);
-            entity.setSenderPhone(phone);
+            entity.setSenderPhone(maskPhone(phone));
             entity.setDirection(direction);
             entity.setMessageType(messageType);
-            entity.setContent(content);
+            entity.setContent(truncate(content));
             entity.setWhatsappMsgId(whatsappMsgId);
 
             messageRepository.save(entity);
         } catch (Exception exception) {
             log.warn("Failed to log {} message for bot {}: {}", direction, botId, exception.getMessage());
         }
+    }
+
+    private String maskPhone(String phone) {
+        if (phone == null || phone.length() <= 7) {
+            return phone;
+        }
+
+        String prefix = phone.substring(0, 3);
+        String suffix = phone.substring(phone.length() - 4);
+
+        return prefix + "*".repeat(phone.length() - 7) + suffix;
+    }
+
+    private String truncate(String content) {
+        if (content == null || content.length() <= MAX_CONTENT_LENGTH) {
+            return content;
+        }
+
+        return content.substring(0, MAX_CONTENT_LENGTH);
     }
 }

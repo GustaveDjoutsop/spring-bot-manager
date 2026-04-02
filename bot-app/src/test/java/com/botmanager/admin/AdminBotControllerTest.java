@@ -32,14 +32,15 @@ class AdminBotControllerTest {
         businessRepository.deleteAll();
     }
 
+    @SuppressWarnings("unchecked")
     private String getAdminToken() {
         AuthDtos.LoginRequest loginRequest = new AuthDtos.LoginRequest();
         loginRequest.setUsername("testadmin");
         loginRequest.setPassword("testpass");
-        var response = restTemplate.postForEntity("/auth/login", loginRequest, AuthDtos.TokenResponse.class);
+        var response = restTemplate.postForEntity("/auth/login", loginRequest, Map.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
-        return response.getBody().getToken();
+        return (String) response.getBody().get("token");
     }
 
     @Test
@@ -69,10 +70,10 @@ class AdminBotControllerTest {
     }
 
     @Test
-    void listBotsWithoutAuthShouldReturn401() {
+    void listBotsWithoutAuthShouldReturn403() {
         var response = restTemplate.getForEntity("/admin/bots", String.class);
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 
     @Test

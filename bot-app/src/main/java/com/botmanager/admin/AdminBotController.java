@@ -3,6 +3,7 @@ package com.botmanager.admin;
 import com.botmanager.core.bot.BotRegistryRefreshEvent;
 import com.botmanager.core.persistence.entity.BusinessEntity;
 import com.botmanager.core.persistence.repository.BusinessRepository;
+import com.botmanager.core.bot.BotType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -129,9 +130,12 @@ public class AdminBotController {
         }
 
         if (StringUtils.hasText(request.getBotType())) {
+            // Validate that the provided botType is supported. BotType.fromValue will
+            // throw an IllegalArgumentException (or similar) for unknown values.
+            BotType.fromValue(request.getBotType());
             entity.setIndustry(request.getBotType());
         } else if (creating) {
-            entity.setIndustry("generic");
+            throw new IllegalArgumentException("botType is required when creating a bot");
         }
 
         if (!creating && StringUtils.hasText(request.getPhoneNumberId())) {

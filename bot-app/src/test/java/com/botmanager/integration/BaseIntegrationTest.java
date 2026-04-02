@@ -17,7 +17,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 @ActiveProfiles("integration")
 @Testcontainers
-@Testcontainers
 public abstract class BaseIntegrationTest {
 
     @Container

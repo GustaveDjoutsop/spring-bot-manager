@@ -225,6 +225,35 @@ public class TranslationService {
         addTranslation("failure_reason_declined", "Payment was declined", "Paiement refusé");
         addTranslation("failure_reason_unknown", "Unknown error", "Erreur inconnue");
 
+        // CamPay error codes
+        addTranslation("campay_err_ER101",
+                "Payment service configuration error. Please contact support.",
+                "Erreur de configuration du service de paiement. Veuillez contacter le support.");
+        addTranslation("campay_err_ER102",
+                "This phone number's mobile network is not supported for payments. Please use an MTN or Orange Cameroon number (+237).",
+                "Le réseau mobile de ce numéro n'est pas pris en charge pour les paiements. Veuillez utiliser un numéro MTN ou Orange Cameroun (+237).");
+        addTranslation("campay_err_ER103",
+                "The payment amount is too low. Please check the amount and try again.",
+                "Le montant du paiement est trop faible. Veuillez vérifier le montant et réessayer.");
+        addTranslation("campay_err_ER104",
+                "Insufficient funds in your mobile money account. Please top up and try again.",
+                "Solde insuffisant sur votre compte mobile money. Veuillez recharger et réessayer.");
+        addTranslation("campay_err_ER105",
+                "Mobile money account not found. Please check your number and try again.",
+                "Compte mobile money introuvable. Veuillez vérifier votre numéro et réessayer.");
+        addTranslation("campay_err_ER106",
+                "This payment reference has already been processed. Please check your payment status.",
+                "Cette référence de paiement a déjà été traitée. Veuillez vérifier votre statut de paiement.");
+        addTranslation("campay_err_default",
+                "Payment could not be completed. Please try again or contact support.",
+                "Le paiement n'a pas pu être effectué. Veuillez réessayer ou contacter le support.");
+        addTranslation("campay_err_unavailable",
+                "Payment service temporarily unavailable. Please try again later.",
+                "Service de paiement temporairement indisponible. Veuillez réessayer plus tard.");
+        addTranslation("campay_err_generic",
+                "Payment request failed. Please try again.",
+                "La demande de paiement a échoué. Veuillez réessayer.");
+
         // Staff alert
         addTranslation("staff_alert_low_rating",
                 "⚠️ *LOW RATING ALERT*\n\n\uD83D\uDCCD Machine: {machine}\n\uD83D\uDCF1 Customer: {phone}\n⭐ Rating: {rating}/5\n\uD83D\uDCAC Comment: {comment}\n\uD83D\uDD50 Time: {time}\n\nPlease follow up with the customer.",

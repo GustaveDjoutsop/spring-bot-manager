@@ -4,6 +4,7 @@ import com.botmanager.config.BotProperties;
 import com.botmanager.core.bot.BotConfig;
 import com.botmanager.core.bot.BotConfigLoader;
 import com.botmanager.core.flow.FlowEngine;
+import com.botmanager.core.i18n.TranslationService;
 import com.botmanager.core.payment.PaymentGateway;
 import com.botmanager.core.redis.RedisManager;
 import com.botmanager.core.whatsapp.WhatsAppClientFactory;
@@ -25,6 +26,7 @@ public class ThomasNetworkBotConfiguration {
                                              WhatsAppClientFactory whatsAppClientFactory,
                                              ObjectMapper objectMapper,
                                              PaymentGateway paymentGateway,
+                                             TranslationService translationService,
                                              Environment environment) {
 
         BotConfig config = BotConfigLoader.load(
@@ -38,7 +40,7 @@ public class ThomasNetworkBotConfiguration {
         BotConfigLoader.resolveVerifyToken(config, environment);
 
         return new ThomasNetworkBot(config, flowEngine, redisManager, whatsAppClientFactory,
-                objectMapper, paymentGateway);
+                objectMapper, paymentGateway, translationService);
     }
 
 }

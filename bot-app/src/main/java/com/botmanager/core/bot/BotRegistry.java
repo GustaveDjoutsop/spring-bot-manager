@@ -324,7 +324,7 @@ public class BotRegistry implements BotLookup {
             );
             case THOMAS_NETWORK -> new com.botmanager.bots.thomasnetwork.ThomasNetworkBot(
                     config, flowEngine, redisManager, whatsAppClientFactory, objectMapper,
-                    paymentGateway
+                    paymentGateway, translationService
             );
         };
     }

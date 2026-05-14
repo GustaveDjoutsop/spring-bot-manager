@@ -4,6 +4,7 @@ import com.botmanager.core.bot.BaseBot;
 import com.botmanager.core.bot.BotConfig;
 import com.botmanager.core.flow.FlowEngine;
 import com.botmanager.core.flow.FlowPlugin;
+import com.botmanager.core.i18n.TranslationService;
 import com.botmanager.core.payment.PaymentEventPublisher;
 import com.botmanager.core.payment.PaymentGateway;
 import com.botmanager.core.payment.PaymentRecord;
@@ -25,10 +26,11 @@ public class ThomasNetworkBot extends BaseBot {
                            RedisManager redisManager,
                            WhatsAppClientFactory whatsAppClientFactory,
                            ObjectMapper objectMapper,
-                           PaymentGateway paymentGateway) {
+                           PaymentGateway paymentGateway,
+                           TranslationService translationService) {
 
         super(config, flowEngine, redisManager, whatsAppClientFactory, objectMapper);
-        this.plugin = new ThomasNetworkFlowPlugin(paymentGateway);
+        this.plugin = new ThomasNetworkFlowPlugin(paymentGateway, translationService);
 
         log.info("ThomasNetworkBot initialized: {}", config.getBotId());
     }

@@ -162,6 +162,8 @@ public class CamPayProvider extends PaymentProvider {
         String scheme = (authScheme == null || authScheme.isBlank()) ? camPayProperties.getAuthScheme() : authScheme;
         headers.set("Authorization", scheme + " " + token);
         headers.set("Content-Type", "application/json");
+        headers.set("User-Agent", "Mozilla/5.0 (compatible; SpringBot/1.0)");
+        headers.set("Accept", "application/json");
 
         return headers;
     }

@@ -96,12 +96,7 @@ public class LaundryFlowPlugin extends FlowPlugin {
     }
 
     private Language getLang(FlowContext context) {
-        Object langObj = context.get("language");
-        if (langObj instanceof Language lang) {
-            return lang;
-        }
-
-        return Language.EN;
+        return Language.fromCode(context.getString("language"));
     }
 
     private String t(String key, FlowContext context) {
@@ -131,11 +126,11 @@ public class LaundryFlowPlugin extends FlowPlugin {
         String input = getInputLower(context);
 
         if ("lang_en".equals(input) || "english".equals(input) || "en".equals(input)) {
-            context.set("language", Language.EN);
+            context.set("language", Language.EN.getCode());
             context.set("step", LaundryStep.MAIN_MENU);
             goTo(context, "main_menu");
         } else if ("lang_fr".equals(input) || "french".equals(input) || "fr".equals(input) || "francais".equals(input)) {
-            context.set("language", Language.FR);
+            context.set("language", Language.FR.getCode());
             context.set("step", LaundryStep.MAIN_MENU);
             goTo(context, "main_menu");
         } else {
@@ -536,6 +531,7 @@ public class LaundryFlowPlugin extends FlowPlugin {
         metadata.put("duration", duration);
         metadata.put("pulseCount", pulseCount);
         metadata.put("customerPhone", customerPhone);
+        metadata.put("language", getLang(context).name());
 
         PaymentRequest request = PaymentRequest.builder()
                 .botId(laundryConfig.getBotId())
@@ -557,7 +553,7 @@ public class LaundryFlowPlugin extends FlowPlugin {
             ));
             context.set("transactionId", result.transactionId());
         } else {
-            String errorMessage = result.errorMessage() != null ? result.errorMessage() : "Payment request failed";
+            String errorMessage = toUserFacingError(result.errorMessage(), getLang(context));
             context.set("responseMessage", t("payment_failed", context, Map.of("error", errorMessage)));
 
             List<FlowState.ButtonOption> buttons = new ArrayList<>();
@@ -744,6 +740,38 @@ public class LaundryFlowPlugin extends FlowPlugin {
     }
 
     // ========== Helpers ==========
+
+    private String toUserFacingError(String raw, Language lang) {
+        if (raw == null || raw.isBlank()) {
+            return translationService.translate("campay_err_generic", lang);
+        }
+        // Strip HTML responses (e.g. Cloudflare challenge pages)
+        if (raw.contains("<html") || raw.contains("<!DOCTYPE")) {
+            return translationService.translate("campay_err_unavailable", lang);
+        }
+        // Extract and map CamPay error_code from JSON body (e.g. 400 Bad Request: "{...}")
+        String errorCode = extractJsonField(raw, "error_code");
+        if (errorCode != null) {
+            String translationKey = "campay_err_" + errorCode;
+            String translated = translationService.translate(translationKey, lang);
+            // translate() returns the key itself when not found — fall back to default
+            return translationKey.equals(translated)
+                    ? translationService.translate("campay_err_default", lang)
+                    : translated;
+        }
+        // Fall back to raw message capped at 200 chars
+        return raw.length() > 200 ? raw.substring(0, 200) + "\u2026" : raw;
+    }
+
+    private String extractJsonField(String text, String fieldName) {
+        String key = "\"" + fieldName + "\":\"";
+        int start = text.indexOf(key);
+        if (start < 0) return null;
+        start += key.length();
+        int end = text.indexOf('"', start);
+        if (end < 0) return null;
+        return text.substring(start, end);
+    }
 
     private String getInputLower(FlowContext context) {
         String input = context.getString("userInput");

@@ -4,6 +4,8 @@ import com.botmanager.core.bot.BotConfig;
 import com.botmanager.core.flow.FlowContext;
 import com.botmanager.core.flow.FlowPlugin;
 import com.botmanager.core.flow.FlowState;
+import com.botmanager.core.i18n.Language;
+import com.botmanager.core.i18n.TranslationService;
 import com.botmanager.core.payment.PaymentGateway;
 import com.botmanager.core.payment.PaymentRequest;
 import com.botmanager.core.payment.PaymentResult;
@@ -20,6 +22,12 @@ import java.util.Map;
 public class ThomasNetworkFlowPlugin extends FlowPlugin {
 
     private final PaymentGateway paymentGateway;
+    private final TranslationService translationService;
+
+    private Language getLang(FlowContext context) {
+        Object langObj = context.get("language");
+        return langObj instanceof Language lang ? lang : Language.EN;
+    }
 
     private static final List<BandwidthOption> BANDWIDTH_OPTIONS = List.of(
             new BandwidthOption("bw_10", "10 Gigabit/s", 4, 10),
@@ -274,6 +282,8 @@ public class ThomasNetworkFlowPlugin extends FlowPlugin {
         metadata.put("bandwidthId", bandwidthId);
         metadata.put("deviceCount", deviceCount);
         metadata.put("customerPhone", customerPhone);
+        metadata.put("language", getLang(context).name());
+        metadata.put("serviceLabel", bandwidthLabel != null ? bandwidthLabel : bandwidthId);
 
         PaymentRequest request = PaymentRequest.builder()
                 .botId(botConfig.getBotId())
@@ -292,9 +302,37 @@ public class ThomasNetworkFlowPlugin extends FlowPlugin {
             context.set("paymentStatus", result.status().getValue());
             goTo(context, "payment_pending");
         } else {
-            context.set("paymentError", result.errorMessage());
+            context.set("paymentError", toUserFacingError(result.errorMessage(), getLang(context)));
             goTo(context, "payment_failed");
         }
+    }
+
+    private String toUserFacingError(String raw, Language lang) {
+        if (raw == null || raw.isBlank()) {
+            return translationService.translate("campay_err_generic", lang);
+        }
+        if (raw.contains("<html") || raw.contains("<!DOCTYPE")) {
+            return translationService.translate("campay_err_unavailable", lang);
+        }
+        String errorCode = extractJsonField(raw, "error_code");
+        if (errorCode != null) {
+            String translationKey = "campay_err_" + errorCode;
+            String translated = translationService.translate(translationKey, lang);
+            return translationKey.equals(translated)
+                    ? translationService.translate("campay_err_default", lang)
+                    : translated;
+        }
+        return raw.length() > 200 ? raw.substring(0, 200) + "\u2026" : raw;
+    }
+
+    private String extractJsonField(String text, String fieldName) {
+        String key = "\"" + fieldName + "\":\"";
+        int start = text.indexOf(key);
+        if (start < 0) return null;
+        start += key.length();
+        int end = text.indexOf('"', start);
+        if (end < 0) return null;
+        return text.substring(start, end);
     }
 
     private record BandwidthOption(String id, String label, int basePrice, int speedGbps) {}

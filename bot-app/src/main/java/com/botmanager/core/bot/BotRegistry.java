@@ -5,6 +5,7 @@ import com.botmanager.config.BotProperties;
 import com.botmanager.core.flow.FlowEngine;
 import com.botmanager.core.i18n.TranslationService;
 import com.botmanager.core.machine.MachineService;
+import com.botmanager.core.payment.PaymentEventPublisher;
 import com.botmanager.core.payment.PaymentGateway;
 import com.botmanager.core.persistence.entity.BusinessEntity;
 import com.botmanager.core.persistence.repository.BusinessRepository;
@@ -76,6 +77,18 @@ public class BotRegistry implements BotLookup {
     public void onRefreshEvent(BotRegistryRefreshEvent event) {
         log.info("Received BotRegistry refresh event; reloading bots from database");
         reloadFromDatabase();
+    }
+
+    @EventListener
+    public void onPaymentCompleted(PaymentEventPublisher.PaymentCompletedEvent event) {
+        getBotByName(event.getRecord().getBotId())
+                .ifPresent(bot -> bot.onPaymentCompleted(event.getRecord()));
+    }
+
+    @EventListener
+    public void onPaymentFailed(PaymentEventPublisher.PaymentFailedEvent event) {
+        getBotByName(event.getRecord().getBotId())
+                .ifPresent(bot -> bot.onPaymentFailed(event.getRecord()));
     }
 
     public void registerBot(String name, BaseBot bot) {
@@ -324,7 +337,7 @@ public class BotRegistry implements BotLookup {
             );
             case THOMAS_NETWORK -> new com.botmanager.bots.thomasnetwork.ThomasNetworkBot(
                     config, flowEngine, redisManager, whatsAppClientFactory, objectMapper,
-                    paymentGateway
+                    paymentGateway, translationService
             );
         };
     }

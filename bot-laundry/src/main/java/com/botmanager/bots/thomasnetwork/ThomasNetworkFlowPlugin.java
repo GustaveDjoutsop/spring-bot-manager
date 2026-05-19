@@ -282,6 +282,8 @@ public class ThomasNetworkFlowPlugin extends FlowPlugin {
         metadata.put("bandwidthId", bandwidthId);
         metadata.put("deviceCount", deviceCount);
         metadata.put("customerPhone", customerPhone);
+        metadata.put("language", getLang(context).name());
+        metadata.put("serviceLabel", bandwidthLabel != null ? bandwidthLabel : bandwidthId);
 
         PaymentRequest request = PaymentRequest.builder()
                 .botId(botConfig.getBotId())

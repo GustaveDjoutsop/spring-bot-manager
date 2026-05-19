@@ -1,6 +1,7 @@
 package com.botmanager.core.bot;
 
 import com.botmanager.core.flow.ConversationState;
+import com.botmanager.core.payment.PaymentRecord;
 import com.botmanager.core.flow.FlowContext;
 import com.botmanager.core.flow.FlowEngine;
 import com.botmanager.core.flow.FlowPlugin;
@@ -94,6 +95,12 @@ public abstract class BaseBot {
     protected void saveConversationState(String customerPhone, ConversationState state) {
         String key = CONVERSATION_KEY_PREFIX + config.getBotId() + ":" + customerPhone;
         redisManager.setWithExpiry(key, state, CONVERSATION_TTL_SECONDS);
+    }
+
+    public void onPaymentCompleted(PaymentRecord record) {
+    }
+
+    public void onPaymentFailed(PaymentRecord record) {
     }
 
 }

@@ -151,6 +151,12 @@ public class TranslationService {
         addTranslation("payment_failed_notification",
                 "❌ *Payment Failed*\n\nYour payment for {machine} was not completed.\n\n\uD83D\uDCCB Reason: {reason}\n\nPlease try again or contact support if the problem persists.",
                 "❌ *Paiement Échoué*\n\nVotre paiement pour {machine} n'a pas abouti.\n\n\uD83D\uDCCB Raison: {reason}\n\nVeuillez réessayer ou contacter le support si le problème persiste.");
+        addTranslation("tn_payment_confirmed",
+                "✅ *Payment Confirmed!*\n\n\uD83D\uDCB0 Amount: {amount} XAF\n\uD83D\uDCF6 Service: {service}\n\uD83D\uDCBB Devices: {deviceCount}\n\n\uD83D\uDE80 *Your internet access has been activated!*",
+                "✅ *Paiement Confirmé!*\n\n\uD83D\uDCB0 Montant: {amount} XAF\n\uD83D\uDCF6 Service: {service}\n\uD83D\uDCBB Appareils: {deviceCount}\n\n\uD83D\uDE80 *Votre accès internet a été activé !*");
+        addTranslation("tn_payment_failed",
+                "❌ *Payment Failed*\n\nYour payment for {service} access was not completed.\n\n\uD83D\uDCCB Reason: {reason}\n\nPlease try again or contact support if the problem persists.",
+                "❌ *Paiement Échoué*\n\nVotre paiement pour l'accès {service} n'a pas abouti.\n\n\uD83D\uDCCB Raison: {reason}\n\nVeuillez réessayer ou contacter le support si le problème persiste.");
 
         // Status
         addTranslation("status_active",

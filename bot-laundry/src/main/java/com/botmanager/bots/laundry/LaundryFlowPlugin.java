@@ -531,6 +531,7 @@ public class LaundryFlowPlugin extends FlowPlugin {
         metadata.put("duration", duration);
         metadata.put("pulseCount", pulseCount);
         metadata.put("customerPhone", customerPhone);
+        metadata.put("language", getLang(context).name());
 
         PaymentRequest request = PaymentRequest.builder()
                 .botId(laundryConfig.getBotId())
